@@ -74,14 +74,20 @@ public class TWOMBLIRunner implements Command {
     @Parameter
     public int minimumGapDiameter = 0;
 
-    @Parameter(type = ItemIO.OUTPUT)
-    public ImagePlus output;
-
-    @Parameter(type = ItemIO.OUTPUT)
+    @Parameter(type=ItemIO.OUTPUT)
     public double alignment;
 
-    @Parameter(type = ItemIO.OUTPUT)
+    @Parameter(type=ItemIO.OUTPUT)
     public int dimension;
+
+    @Parameter(type=ItemIO.OUTPUT)
+    public ImagePlus maskImage;
+
+    @Parameter(type=ItemIO.OUTPUT)
+    public ImagePlus hdmImage;
+
+    @Parameter(type=ItemIO.OUTPUT)
+    public ImagePlus gapImage;
 
     // Magic number declarations
     private static final double HIGH_CONTRAST_THRESHOLD = 120.0;
@@ -188,16 +194,14 @@ public class TWOMBLIRunner implements Command {
         ImagePlus maskImage = IJ.openImage(new File(finalMaskImagePath).getAbsolutePath());
         this.runOrientationJ(maskImage);
 
-        // Close non-essential windows
-//        this.closeNonImages();
-
         // Gap analysis
         maskImage = IJ.openImage(new File(finalMaskImagePath).getAbsolutePath());
         this.performGapAnalysis(gapAnalysisDirectory, maskImage);
 
         // Output handling
-//        this.closeNonImages();
-        this.output = maskImage;
+        this.maskImage = maskImage;
+        this.hdmImage = IJ.openImage(hdmDirectory + File.separator + this.filePrefix + "_hdm.png");
+        this.gapImage = IJ.openImage(gapAnalysisDirectory + File.separator + this.filePrefix + "_gap.png");
     }
 
     private void detectRidges(ImagePlus inputImage, String maskImage) {
@@ -317,7 +321,9 @@ public class TWOMBLIRunner implements Command {
                 File propsFile = new File(this.anamorfPropertiesFile);
                 props.loadFromXML(Files.newInputStream(propsFile.toPath()));
             }
-        } catch (IOException ex) {
+        }
+
+        catch (IOException ex) {
             ex.printStackTrace();
             return;
         }
@@ -468,18 +474,20 @@ public class TWOMBLIRunner implements Command {
         File individualGapAnalysisFile = new File(individualGapAnalysisFilePath);
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(individualGapAnalysisFile))) {
             bw.write(this.filePrefix + " " + mean + " " + standardDeviation + " " + fivePercentile + " " + fiftyPercentile + " " + ninetyFivePercentile);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
 
         // Write the array to file
-        String individualGapAnalysisArrayFilePath = gapAnalysisDirectory + File.separator + this.filePrefix + "_area_arrays.csv";
+        String individualGapAnalysisArrayFilePath = gapAnalysisDirectory + File.separator +  this.filePrefix + "_area_arrays.csv";
         File individualGapAnalysisArrayFile = new File(individualGapAnalysisArrayFilePath);
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(individualGapAnalysisArrayFile))) {
             for (double area : areas) {
                 bw.write(area + "\n");
             }
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
         WindowManager.setTempCurrentImage(null);

@@ -41,7 +41,7 @@ macro "Quant Black Space"{
         }
         setResult("Image Name", nResults(), file);
         setResult("Series", nResults() - 1, s);
-        setResult("% Black", nResults() - 1, minZero / imageSize);
+        setResult("% HDM", nResults() - 1, minZero / imageSize);
     }
     //Ext.close();
 	

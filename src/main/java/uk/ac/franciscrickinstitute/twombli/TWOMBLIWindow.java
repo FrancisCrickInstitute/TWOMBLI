@@ -5,6 +5,8 @@ import javax.swing.text.NumberFormatter;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,15 +25,16 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.ImageCanvas;
 import ij.gui.StackWindow;
+import ij.process.ImageProcessor;
 import org.scijava.command.CommandModule;
 
 // Logservice integration
-public class TWOMBLIWindow extends StackWindow {
+public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener {
 
     private static final double MAX_MAGNIFICATION = 32.0;
     private static final double MIN_MAGNIFICATION = 1/72.0;
 
-    private final ImagePlus originalImage;
+    private ImagePlus originalImage;
     final TWOMBLIConfigurator plugin;
     private final JFormattedTextField minimumLineWidthField;
     private final JFormattedTextField maximumLineWidthField;
@@ -46,13 +49,26 @@ public class TWOMBLIWindow extends StackWindow {
     private final JFormattedTextField gapAnalysisDiameterField;
     private final JButton anamorfButton;
     private final JButton infoButton;
+    private final JButton changePreviewButton;
+    private final JLabel selectedPreviewPathField;
+    private final JButton resetViewButton;
     private final JButton selectOutputButton;
     private final JLabel selectedOutputField;
     private final JButton runPreviewButton;
-    private final JButton revertPreview;
+//    private final JButton revertPreview;
     private final JButton selectBatchButton;
     private JLabel selectedBatchField;
     private final JButton runButton;
+
+    // Preview image controls
+    private JLabel currentlySelectedLabel;
+    private Checkbox originalRadioButton;
+    private Checkbox hdmRadioButton;
+    private ImagePlus hdmImage;
+    private Checkbox fibreRadioButton;
+    private ImagePlus fibreImage;
+    private Checkbox micRadioButton;
+    private ImagePlus micImage;
 
     private String outputDirectory;
     private String anamorfPropertiesFile;
@@ -64,6 +80,7 @@ public class TWOMBLIWindow extends StackWindow {
     private List<CommandModule> finishedFutures = new ArrayList<>();
     private int progressBarCurrent;
     private int progressBarMax;;
+    private ProgressDialog customProgressBar;
 
     /*
     TODO: UX:
@@ -83,6 +100,34 @@ public class TWOMBLIWindow extends StackWindow {
         // Layouts
         FlowLayout panelLayout = new FlowLayout();
         panelLayout.setAlignment(FlowLayout.LEFT);
+
+        // Info button
+        this.infoButton = new JButton("Information!");
+        this.infoButton.setToolTipText("Get information about TWOMBLI.");
+        ActionListener infoListener = e -> this.showInfo();
+        this.infoButton.addActionListener(infoListener);
+
+        // Change preview button
+        this.changePreviewButton = new JButton("Change Preview Image");
+        this.changePreviewButton.setToolTipText("Change the preview image to a different image.");
+        ActionListener changePreviewListener = e -> this.changePreviewImage();
+        this.changePreviewButton.addActionListener(changePreviewListener);
+
+        // Current preview path
+        this.selectedPreviewPathField = new JLabel(this.originalImage.getOriginalFileInfo().getFilePath());
+
+        // Reset View button
+        this.resetViewButton = new JButton("Reset View");
+        this.resetViewButton.setToolTipText("Reset the view to the original image.");
+        ActionListener resetViewListener = e -> this.resetView();
+        this.resetViewButton.addActionListener(resetViewListener);
+
+        // Select output directory button
+        this.selectOutputButton = new JButton("Select Output Directory (Required!)");
+        this.selectOutputButton.setToolTipText("Choose a directory to output all the data. This includes preview data!");
+        ActionListener selectOutputListener = e -> this.getOutputDirectory();
+        this.selectOutputButton.addActionListener(selectOutputListener);
+        this.selectedOutputField = new JLabel("No output directory selected.");
 
         // Minimum line width panel
         JLabel minimLineWidthInfo = new JLabel("Minimum Line Width (px):");
@@ -115,7 +160,7 @@ public class TWOMBLIWindow extends StackWindow {
         this.darklinesCheckbox.setToolTipText("Check this box if the lines are darker as opposed to light.");
 
         // Minimum branch length
-        JLabel minimumBranchLengthInfo = new JLabel("Maximum Branch Length (px):");
+        JLabel minimumBranchLengthInfo = new JLabel("Minimum Branch Length (px):");
         this.minimumBranchLengthField = new JFormattedTextField(intFormat);
         this.minimumBranchLengthField.setValue(10);
         JPanel minimumBranchLengthPanel = new JPanel();
@@ -201,30 +246,17 @@ public class TWOMBLIWindow extends StackWindow {
         ActionListener anamorfListener = e -> this.getAnamorfProperties();
         this.anamorfButton.addActionListener(anamorfListener);
 
-        // Info button
-        this.infoButton = new JButton("Information!");
-        this.infoButton.setToolTipText("Get information about TWOMBLI.");
-        ActionListener infoListener = e -> this.showInfo();
-        this.infoButton.addActionListener(infoListener);
-
-        // Select output directory button
-        this.selectOutputButton = new JButton("Select Output Directory (Required!)");
-        this.selectOutputButton.setToolTipText("Choose a directory to output all the data. This includes preview data!");
-        ActionListener selectOutputListener = e -> this.getOutputDirectory();
-        this.selectOutputButton.addActionListener(selectOutputListener);
-        this.selectedOutputField = new JLabel("No output directory selected.");
-
         // Run Preview button
         this.runPreviewButton = new JButton("Run Preview");
         this.runPreviewButton.setToolTipText("Run TWOMBLI with the current configuration on the preview image.");
         ActionListener runPreviewListener = e -> this.runPreviewProcess();
         this.runPreviewButton.addActionListener(runPreviewListener);
 
-        // Revert preview button
-        this.revertPreview = new JButton("Revert Preview");
-        this.revertPreview.setToolTipText("Revert the preview image to the original.");
-        ActionListener revertPreviewListener = e -> this.revertPreview();
-        this.revertPreview.addActionListener(revertPreviewListener);
+//        // Revert preview button
+//        this.revertPreview = new JButton("Revert Preview");
+//        this.revertPreview.setToolTipText("Revert the preview image to the original.");
+//        ActionListener revertPreviewListener = e -> this.revertPreview();
+//        this.revertPreview.addActionListener(revertPreviewListener);
 
         // Select batch button
         this.selectBatchButton = new JButton("Select Batch");
@@ -313,12 +345,16 @@ public class TWOMBLIWindow extends StackWindow {
         sidePanelConstraints.gridy = 0;
         sidePanelConstraints.insets = new Insets(5, 5, 5, 5);
 
-        // Configuration panel
-        sidePanel.add(configPanel, sidePanelConstraints);
-
         // Help button
-        sidePanelConstraints.gridy++;
         sidePanel.add(this.infoButton, sidePanelConstraints);
+
+        // Change preview button
+        sidePanelConstraints.gridy++;
+        sidePanel.add(this.changePreviewButton, sidePanelConstraints);
+
+        // Preview path
+        sidePanelConstraints.gridy++;
+        sidePanel.add(this.selectedPreviewPathField, sidePanelConstraints);
 
         // Select Output Directory
         sidePanelConstraints.gridy++;
@@ -328,13 +364,69 @@ public class TWOMBLIWindow extends StackWindow {
         sidePanelConstraints.gridy++;
         sidePanel.add(this.selectedOutputField, sidePanelConstraints);
 
+        // Configuration panel
+        sidePanelConstraints.gridy++;
+        sidePanel.add(configPanel, sidePanelConstraints);
+
         // Insert run preview button
         sidePanelConstraints.gridy++;
         sidePanel.add(this.runPreviewButton, sidePanelConstraints);
 
-        // Revert preview button
+        // Configuration panel
+        GridBagLayout previewPanelLayout = new GridBagLayout();
+        JPanel previewPanel = new JPanel();
+        previewPanel.setBorder(BorderFactory.createTitledBorder("Preview Images"));
+        previewPanel.setLayout(previewPanelLayout);
+        GridBagConstraints previewPanelConstraints = new GridBagConstraints();
+        previewPanelConstraints.anchor = GridBagConstraints.NORTH;
+        previewPanelConstraints.fill = GridBagConstraints.HORIZONTAL;
+        previewPanelConstraints.gridwidth = 1;
+        previewPanelConstraints.gridheight = 1;
+        previewPanelConstraints.gridx = 0;
+        previewPanelConstraints.gridy = 0;
+        previewPanelConstraints.insets = new Insets(5, 5, 5, 5);
+
+        // Selected info
+        this.currentlySelectedLabel = new JLabel("Currently Selected: None");
+
+        // Button group
+        CheckboxGroup radioGroup = new CheckboxGroup();
+
+        // Original Image
+        this.originalRadioButton = new Checkbox("Original Image", radioGroup, false);
+        this.originalRadioButton.addItemListener(e -> this.handleOriginalButtonPressed());
+        this.originalRadioButton.setEnabled(false);
+        previewPanelConstraints.gridy++;
+        previewPanel.add(this.originalRadioButton, previewPanelConstraints);
+
+        // HDM Image
+        this.hdmRadioButton = new Checkbox("HDM Image", radioGroup, false);
+        this.hdmRadioButton.addItemListener(e -> this.handleHDMButtonPressed());
+        this.hdmRadioButton.setEnabled(false);
+        previewPanelConstraints.gridy++;
+        previewPanel.add(this.hdmRadioButton, previewPanelConstraints);
+
+        // Fibre Overlay
+        this.fibreRadioButton = new Checkbox("Fibre Overlay", radioGroup, false);
+        this.fibreRadioButton.addItemListener(e -> this.handleFibreButtonPressed());
+        this.fibreRadioButton.setEnabled(false);
+        previewPanelConstraints.gridy++;
+        previewPanel.add(this.fibreRadioButton, previewPanelConstraints);
+
+        // MIC
+        this.micRadioButton = new Checkbox("Gap Analysis", radioGroup, false);
+        this.micRadioButton.addItemListener(e -> this.handleMICButtonPressed());
+        this.micRadioButton.setEnabled(false);
+        previewPanelConstraints.gridy++;
+        previewPanel.add(this.micRadioButton, previewPanelConstraints);
+
+        // Preview panel
         sidePanelConstraints.gridy++;
-        sidePanel.add(this.revertPreview, sidePanelConstraints);
+        sidePanel.add(previewPanel, sidePanelConstraints);
+
+//        // Revert preview button
+//        sidePanelConstraints.gridy++;
+//        sidePanel.add(this.revertPreview, sidePanelConstraints);
 
         // Select Batch
         sidePanelConstraints.gridy++;
@@ -394,6 +486,83 @@ public class TWOMBLIWindow extends StackWindow {
         this.setMinimumSize(this.getPreferredSize());
     }
 
+    private void handleOriginalButtonPressed() {
+        this.currentlySelectedLabel.setText("Currently Selected: Original Image");
+        ImagePlus preview;
+        if (this.originalImage.getImageStackSize() == 1) {
+            preview = ImageUtils.duplicateImage(this.originalImage);
+        }
+
+        // Only take the 'currently selected' file for our preview.
+        else {
+            preview = this.originalImage.crop();
+        }
+
+        this.setImage(preview);
+    }
+
+    private void handleHDMButtonPressed() {
+        this.currentlySelectedLabel.setText("Currently Selected: HDM Image");
+        ImagePlus preview;
+        if (this.hdmImage.getImageStackSize() == 1) {
+            preview = ImageUtils.duplicateImage(this.hdmImage);
+        }
+        else {
+            preview = this.hdmImage.crop();
+        }
+        this.setImage(preview);
+    }
+
+    private void handleFibreButtonPressed() {
+        this.currentlySelectedLabel.setText("Currently Selected: Fibre Overlay");
+        ImagePlus base;
+        if (this.originalImage.getImageStackSize() == 1) {
+            base = ImageUtils.duplicateImage(this.originalImage);
+        }
+        else {
+            base = this.originalImage.crop();
+        }
+
+        ImagePlus overlay;
+        if (this.fibreImage.getImageStackSize() == 1) {
+            overlay = ImageUtils.duplicateImage(this.fibreImage);
+        }
+        else {
+            overlay = this.fibreImage.crop();
+        }
+
+        // Get the image processors
+        ImageProcessor baseProcessor = base.getProcessor();
+        ImageProcessor overlayProcessor = overlay.getProcessor();
+
+        // Overlay the images
+        for (int y = 0; y < base.getHeight(); y++) {
+            for (int x = 0; x < base.getWidth(); x++) {
+                int maskPixel = overlayProcessor.get(x, y);
+                if (maskPixel != 0) {
+                    continue;
+                }
+
+                baseProcessor.putPixel(x, y, 16711680);
+            }
+        }
+
+        base.updateAndDraw();
+        this.setImage(base);
+    }
+
+    private void handleMICButtonPressed() {
+        this.currentlySelectedLabel.setText("Currently Selected: MIC Overlay");
+        ImagePlus preview;
+        if (this.micImage.getImageStackSize() == 1) {
+            preview = ImageUtils.duplicateImage(this.micImage);
+        }
+        else {
+            preview = this.micImage.crop();
+        }
+        this.setImage(preview);
+    }
+
     @Override
     public void windowClosing(WindowEvent e) {
         super.windowClosing(e);
@@ -413,7 +582,7 @@ public class TWOMBLIWindow extends StackWindow {
         this.gapAnalysisDiameterField.setEnabled(state);
         this.anamorfButton.setEnabled(state);
         this.runPreviewButton.setEnabled(state);
-        this.revertPreview.setEnabled(state);
+//        this.revertPreview.setEnabled(state);
         this.selectBatchButton.setEnabled(state);
         this.toggleRunButton(state);
     }
@@ -474,6 +643,22 @@ public class TWOMBLIWindow extends StackWindow {
                 " - MaxInscribedCircles: {TODO:circles_link}\n" +
                 " - Bio-Formats: {TODO:bioformats_link}\n";
         IJ.showMessage(info);
+    }
+
+    private void changePreviewImage() {
+        ImagePlus newPreview = IJ.openImage();
+        if (newPreview == null) {
+            return;
+        }
+
+        this.setImage(newPreview);
+        this.originalImage = newPreview;
+        this.selectedPreviewPathField.setText(newPreview.getOriginalFileInfo().getFilePath());
+    }
+
+    private void resetView() {
+        this.setImage(this.originalImage);
+        this.zoomImage();
     }
 
     private void getOutputDirectory() {
@@ -558,7 +743,7 @@ public class TWOMBLIWindow extends StackWindow {
 
     private void runPreviewProcess() {
         this.preparePreview();
-        this.startProcessing();
+        this.startProcessing(true);
     }
 
     private void preparePreview() {
@@ -594,7 +779,7 @@ public class TWOMBLIWindow extends StackWindow {
     }
 
     private void runProcess() {
-        this.preparePreview();
+//        this.preparePreview();
 
         // Skip if we don't have a batch path
         if (this.batchPath == null) {
@@ -620,10 +805,10 @@ public class TWOMBLIWindow extends StackWindow {
             this.processQueue.add(img);
         }
 
-        this.startProcessing();
+        this.startProcessing(false);
     }
 
-    private void startProcessing() {
+    private void startProcessing(boolean hasPreview) {
         this.inputs = this.getInputs();
 
         // Empty our output directory (which should only contain previous run data)
@@ -638,12 +823,17 @@ public class TWOMBLIWindow extends StackWindow {
         this.progressBarMax = this.processQueue.size();
         IJ.showMessage("Processing Images. This may take a while. (Press OK to start.)");
         IJ.showProgress(this.progressBarCurrent, this.progressBarMax);
+        this.customProgressBar = new ProgressDialog(IJ.getInstance(), "Processing Images", this.progressBarMax, this);
 
         // Process our first image
-        this.processNext(true);
+        this.processNext(hasPreview);
     }
 
     private void processNext(boolean isPreview) {
+        if (this.processQueue.isEmpty()) {
+            return;
+        }
+
         ImagePlus img = this.processQueue.remove();
         this.inputs.put("img", img);
         Future<CommandModule> future = this.plugin.commandService.run(TWOMBLIRunner.class, false, inputs);
@@ -665,8 +855,14 @@ public class TWOMBLIWindow extends StackWindow {
             // Update our preview image with our output
             if (isPreview) {
                 CommandModule output = future.get();
-                this.setImage((ImagePlus) output.getOutput("output"));
-                this.imp.setTitle("TWOMBLI Preview");
+                this.originalRadioButton.setEnabled(true);
+                this.hdmRadioButton.setEnabled(true);
+                this.hdmImage = (ImagePlus) output.getOutput("hdmImage");
+                this.fibreRadioButton.setEnabled(true);
+                this.fibreImage = (ImagePlus) output.getOutput("maskImage");
+                this.micRadioButton.setEnabled(true);
+                this.micImage = (ImagePlus) output.getOutput("gapImage");
+                this.handleFibreButtonPressed();
             }
 
             // Store our output for collation
@@ -680,15 +876,17 @@ public class TWOMBLIWindow extends StackWindow {
         }
 
         // Check if we have more to process.
-        if (!this.processQueue.isEmpty()) {
+        if (this.progressBarCurrent + 1 != this.progressBarMax) {
             this.progressBarCurrent += 1;
             IJ.showProgress(this.progressBarCurrent, this.progressBarMax);
+            this.customProgressBar.updateProgress(this.progressBarCurrent);
             this.processNext(false);
         }
 
         // Restore our gui functionality & close progress bars
         else {
             IJ.showProgress(1, 1);
+            this.customProgressBar.dispose();
             this.generateSummaries();
 
             // Reopen us because someone closed everything with a hammer?
@@ -706,49 +904,17 @@ public class TWOMBLIWindow extends StackWindow {
             // Gather our basic info
             String filePrefix = (String) output.getInput("filePrefix");
             double alignment = (double) output.getOutput("alignment");
-            double dimension = (int) output.getOutput("dimension");
+            int dimension = (int) output.getOutput("dimension");
             Path anamorfSummaryPath = Paths.get(this.outputDirectory, "masks", filePrefix + "_results.csv");
             Path hdmSummaryPath = Paths.get(this.outputDirectory, "hdm_csvs", filePrefix + "_ResultsHDM.csv");
             Path gapAnalysisPath = Paths.get(this.outputDirectory, "gap_analysis", filePrefix + "_gaps.csv");
-
-            // Write to our twombli summary
-            try {
-                List<String> lines = new ArrayList<>();
-                List<String> anamorfEntries = Files.readAllLines(anamorfSummaryPath);
-                List<String> hdmEntries = Files.readAllLines(hdmSummaryPath);
-
-                // Conditionally write out our header
-                if (doHeader) {
-                    String headerItems = anamorfEntries.get(0);
-                    String[] hdmHeaderItems = hdmEntries.get(0).split(",");
-                    String header = headerItems + "," + hdmHeaderItems[hdmHeaderItems.length - 1] + ",Alignment (Coherency [%]),Size";
-                    lines.add(header);
-                    doHeader = false;
-                }
-
-                // Get the data
-                String anamorfData = anamorfEntries.get(anamorfEntries.size() - 1);
-                String[] hdmData = hdmEntries.get(hdmEntries.size() - 1).split(",");
-                double hdmValue = 1 - Double.parseDouble(hdmData[hdmData.length - 1]);
-                lines.add(anamorfData + "," + hdmValue + "," + alignment + "," + dimension);
-
-                // Write
-                Files.write(twombliOutputPath, lines, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            }
-
-            catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-            // Write to our gap analysis summary
-            if (this.gapAnalysisCheckbox.isSelected()) {
-                try {
-                    List<String> lines = Files.readAllLines(gapAnalysisPath);
-                    Files.write(gapsOutputPath, lines, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+            Outputs.generateSummaries(twombliOutputPath, alignment, dimension, anamorfSummaryPath, hdmSummaryPath, gapAnalysisPath, doHeader, this.gapAnalysisCheckbox.isSelected(), gapsOutputPath);
+            doHeader = false;
         }
+    }
+
+    @Override
+    public void handleProgressBarCancelled() {
+        this.processQueue.clear();
     }
 }
