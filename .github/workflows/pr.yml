@@ -5,7 +5,7 @@ on:
     types: [submitted]
 
 jobs:
-  build_release:
+  build:
     runs-on: ubuntu-latest
     env:
       IJ_DOWNLOAD_URL: https://downloads.imagej.net/fiji/latest/fiji-linux64.zip
