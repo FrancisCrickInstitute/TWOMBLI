@@ -40,12 +40,12 @@ public class FileUtils {
             return true;
         }
 
-        YesNoCancelDialog dialog = new YesNoCancelDialog(
+        YesNoDialog dialog = new YesNoDialog(
                 IJ.getInstance(),
                 "Output Directory Not Empty",
-                "The output directory is not empty. Continue and overwrite?",
+                "The output directory is not empty and this is currently a requirement for the plugin. Would you like to continue and overwrite? If you are unsure, simply make a new directory when selecting your output directory!",
                 "Delete Contents", "Cancel");
-        if (dialog.cancelPressed()) {
+        if (!dialog.yesPressed()) {
             return false;
         }
 

@@ -1,5 +1,7 @@
 package uk.ac.franciscrickinstitute.twombli;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -143,49 +145,12 @@ public class TWOMBLIBatchRunner implements Command {
             // Gather our basic info
             String filePrefix = runner.filePrefix;
             double alignment = runner.alignment;
-            double dimension = runner.dimension;
+            int dimension = runner.dimension;
             Path anamorfSummaryPath = Paths.get(this.outputPath, "masks", filePrefix + "_results.csv");
             Path hdmSummaryPath = Paths.get(this.outputPath, "hdm_csvs", filePrefix + "_ResultsHDM.csv");
             Path gapAnalysisPath = Paths.get(this.outputPath, "gap_analysis", filePrefix + "_gaps.csv");
-
-            // Write to our twombli summary
-            try {
-                List<String> lines = new ArrayList<>();
-                List<String> anamorfEntries = Files.readAllLines(anamorfSummaryPath);
-                List<String> hdmEntries = Files.readAllLines(hdmSummaryPath);
-
-                // Conditionally write out our header
-                if (doHeader) {
-                    String headerItems = anamorfEntries.get(0);
-                    String[] hdmHeaderItems = hdmEntries.get(0).split(",");
-                    String header = headerItems + "," + hdmHeaderItems[hdmHeaderItems.length - 1] + ",Alignment (Coherency [%]),Size";
-                    lines.add(header);
-                    doHeader = false;
-                }
-
-                // Get the data
-                String anamorfData = anamorfEntries.get(anamorfEntries.size() - 1);
-                String[] hdmData = hdmEntries.get(hdmEntries.size() - 1).split(",");
-                double hdmValue = 1 - Double.parseDouble(hdmData[hdmData.length - 1]);
-                lines.add(anamorfData + "," + hdmValue + "," + alignment + "," + dimension);
-
-                // Write
-                Files.write(twombliOutputPath, lines, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            }
-
-            catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-            // Write to our gap analysis summary
-            if (this.performGapAnalysis) {
-                try {
-                    List<String> lines = Files.readAllLines(gapAnalysisPath);
-                    Files.write(gapsOutputPath, lines, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+            Outputs.generateSummaries(twombliOutputPath, alignment, dimension, anamorfSummaryPath, hdmSummaryPath, gapAnalysisPath, doHeader, this.performGapAnalysis, gapsOutputPath);
+            doHeader = false;
         }
     }
 }
