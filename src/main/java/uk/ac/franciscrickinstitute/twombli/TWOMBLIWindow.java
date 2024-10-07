@@ -26,6 +26,7 @@ import ij.ImagePlus;
 import ij.gui.ImageCanvas;
 import ij.gui.StackWindow;
 import ij.process.ImageProcessor;
+import io.scif.img.IO;
 import org.scijava.command.CommandModule;
 
 // Logservice integration
@@ -48,6 +49,8 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
     private final JCheckBox gapAnalysisCheckbox;
     private final JFormattedTextField gapAnalysisDiameterField;
     private final JButton anamorfButton;
+    private final JButton saveConfigButton;
+    private final JButton loadConfigButton;
     private final JButton infoButton;
     private final JButton changePreviewButton;
     private final JLabel selectedPreviewPathField;
@@ -246,6 +249,16 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         ActionListener anamorfListener = e -> this.getAnamorfProperties();
         this.anamorfButton.addActionListener(anamorfListener);
 
+        // Save config button
+        this.saveConfigButton = new JButton("Save Configuration");
+        this.saveConfigButton.setToolTipText("Save the current TWOMBLI configuration to a file.");
+        this.saveConfigButton.addActionListener(e -> this.saveConfiguration());
+
+        // Load config button
+        this.loadConfigButton = new JButton("Load Configuration");
+        this.loadConfigButton.setToolTipText("Load the current TWOMBLI configuration to a file.");
+        this.loadConfigButton.addActionListener(e -> this.loadConfiguration());
+
         // Run Preview button
         this.runPreviewButton = new JButton("Run Preview");
         this.runPreviewButton.setToolTipText("Run TWOMBLI with the current configuration on the preview image.");
@@ -331,6 +344,14 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         // Gap analysis diameter
         configPanelConstraints.gridy++;
         configPanel.add(gapAnalysisDiameterPanel, configPanelConstraints);
+
+        // Save config
+        configPanelConstraints.gridy++;
+        configPanel.add(this.saveConfigButton, configPanelConstraints);
+
+        // Load Config
+        configPanelConstraints.gridy++;
+        configPanel.add(this.loadConfigButton, configPanelConstraints);
 
         // Sidebar panel
         GridBagLayout sidePanelLayout = new GridBagLayout();
@@ -695,6 +716,106 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         this.anamorfPropertiesFile = potential;
     }
 
+    private void saveConfiguration() {
+        String potentialSavePath = IJ.getDirectory("Save TWOMBLI Configuration");
+        if (potentialSavePath == null || !Files.isDirectory(Paths.get(potentialSavePath))) {
+            return;
+        }
+
+        Path savePath = Paths.get(potentialSavePath, "twombli_configuraiton.txt");
+        try (BufferedWriter configWriter = Files.newBufferedWriter(savePath, StandardOpenOption.CREATE_NEW)) {
+            configWriter.write("MINIMUM_LINE_WIDTH:" + Integer.valueOf(this.minimumLineWidthField.getText()));
+            configWriter.write("MAXIMUM_LINE_WIDTH:" + Integer.valueOf(this.maximumLineWidthField.getText()));
+            configWriter.write("DARK_LINES:" + this.darklinesCheckbox.isSelected());
+            configWriter.write("MINIMUM_BRANCH_LENGTH:" + Integer.valueOf(this.minimumBranchLengthField.getText()));
+            configWriter.write("MINIMUM_CURVATURE_WINDOW:" + Integer.valueOf(this.minimumCurvatureWindowField.getText()));
+            configWriter.write("MAXIMUM_CURVATURE_WINDOW:" + Integer.valueOf(this.maximumCurvatureWindowField.getText()));
+            configWriter.write("CURVATURE_WINDOW_STEP_SIZE:" + Integer.valueOf(this.curvatureStepSizeField.getText()));
+            configWriter.write("MAXIMUM_DISPLAY_HDM:" + Integer.valueOf(this.maximumDisplayHDMField.getText()));
+            configWriter.write("CONTRAST_SATURATION:" + Float.valueOf(this.contrastSaturationField.getText()));
+            configWriter.write("PERFORM_GAP_ANALYSIS:" + this.gapAnalysisCheckbox.isSelected());
+            configWriter.write("MINIMUM_GAP_DIAMETER:" + Integer.valueOf(this.gapAnalysisDiameterField.getText()));
+
+            if (this.anamorfPropertiesFile != null) {
+                configWriter.write("ANAMORF_FILE:" + this.anamorfPropertiesFile);
+            }
+        }
+
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadConfiguration() {
+        String potentialSaveFile = IJ.getFilePath("Load TWOMBLI Configuration");
+        if (potentialSaveFile == null) {
+            return;
+        }
+
+        Path savePath = Paths.get(potentialSaveFile);
+        if (!Files.isRegularFile(savePath)) {
+            return;
+        }
+
+        try (BufferedReader configReader = Files.newBufferedReader(savePath)) {
+            String line;
+            while ((line = configReader.readLine()) != null) {
+                String[] config = line.split(":");
+
+                if (config.length != 2) {
+                    continue; // Skip invalid lines
+                }
+
+                String key = config[0];
+                String value = config[1];
+
+                switch (key) {
+                    case "MINIMUM_LINE_WIDTH":
+                        this.minimumLineWidthField.setText(value);
+                        break;
+                    case "MAXIMUM_LINE_WIDTH":
+                        this.maximumLineWidthField.setText(value);
+                        break;
+                    case "DARK_LINES":
+                        this.darklinesCheckbox.setSelected(Boolean.parseBoolean(value));
+                        break;
+                    case "MINIMUM_BRANCH_LENGTH":
+                        this.minimumBranchLengthField.setText(value);
+                        break;
+                    case "MINIMUM_CURVATURE_WINDOW":
+                        this.minimumCurvatureWindowField.setText(value);
+                        break;
+                    case "MAXIMUM_CURVATURE_WINDOW":
+                        this.maximumCurvatureWindowField.setText(value);
+                        break;
+                    case "CURVATURE_WINDOW_STEP_SIZE":
+                        this.curvatureStepSizeField.setText(value);
+                        break;
+                    case "MAXIMUM_DISPLAY_HDM":
+                        this.maximumDisplayHDMField.setText(value);
+                        break;
+                    case "CONTRAST_SATURATION":
+                        this.contrastSaturationField.setText(value);
+                        break;
+                    case "PERFORM_GAP_ANALYSIS":
+                        this.gapAnalysisCheckbox.setSelected(Boolean.parseBoolean(value));
+                        break;
+                    case "MINIMUM_GAP_DIAMETER":
+                        this.gapAnalysisDiameterField.setText(value);
+                        break;
+                    case "ANAMORF_FILE":
+                        this.anamorfPropertiesFile = value;
+                        break;
+                    default:
+                        // Unknown configuration key, can log or ignore
+                        break;
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void getBatchDirectory() {
        String potential = IJ.getDirectory("Get Batch Folder");
        if (potential == null) {
@@ -888,10 +1009,6 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
             IJ.showProgress(1, 1);
             this.customProgressBar.dispose();
             this.generateSummaries();
-
-            // Reopen us because someone closed everything with a hammer?
-            this.setVisible(true);
-            this.closed = false;
         }
     }
 
@@ -899,17 +1016,27 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         // Loop through our results and generate a summary
         Path gapsOutputPath = Paths.get(this.outputDirectory, "gaps_summary.csv");
         Path twombliOutputPath = Paths.get(this.outputDirectory, "twombli_summary.csv");
+        Path successLog = Paths.get(this.outputDirectory, "success.log");
         boolean doHeader = true;
-        for (CommandModule output : this.finishedFutures) {
-            // Gather our basic info
-            String filePrefix = (String) output.getInput("filePrefix");
-            double alignment = (double) output.getOutput("alignment");
-            int dimension = (int) output.getOutput("dimension");
-            Path anamorfSummaryPath = Paths.get(this.outputDirectory, "masks", filePrefix + "_results.csv");
-            Path hdmSummaryPath = Paths.get(this.outputDirectory, "hdm_csvs", filePrefix + "_ResultsHDM.csv");
-            Path gapAnalysisPath = Paths.get(this.outputDirectory, "gap_analysis", filePrefix + "_gaps.csv");
-            Outputs.generateSummaries(twombliOutputPath, alignment, dimension, anamorfSummaryPath, hdmSummaryPath, gapAnalysisPath, doHeader, this.gapAnalysisCheckbox.isSelected(), gapsOutputPath);
-            doHeader = false;
+
+        try (BufferedWriter successWriter = Files.newBufferedWriter(successLog, StandardOpenOption.APPEND)) {
+            for (CommandModule output : this.finishedFutures) {
+                // Gather our basic info
+                String filePrefix = (String) output.getInput("filePrefix");
+                boolean success = (boolean) output.getOutput("complete");
+                double alignment = (double) output.getOutput("alignment");
+                int dimension = (int) output.getOutput("dimension");
+                Path anamorfSummaryPath = Paths.get(this.outputDirectory, "masks", filePrefix + "_results.csv");
+                Path hdmSummaryPath = Paths.get(this.outputDirectory, "hdm_csvs", filePrefix + "_ResultsHDM.csv");
+                Path gapAnalysisPath = Paths.get(this.outputDirectory, "gap_analysis", filePrefix + "_gaps.csv");
+                Outputs.generateSummaries(twombliOutputPath, alignment, dimension, anamorfSummaryPath, hdmSummaryPath, gapAnalysisPath, doHeader, this.gapAnalysisCheckbox.isSelected(), gapsOutputPath);
+                doHeader = false;
+                successWriter.write(filePrefix + ": " + success + "\n");
+            }
+        }
+
+        catch (IOException e) {
+            e.printStackTrace();
         }
     }
 

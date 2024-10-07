@@ -89,6 +89,9 @@ public class TWOMBLIRunner implements Command {
     @Parameter(type=ItemIO.OUTPUT)
     public ImagePlus gapImage;
 
+    @Parameter(type=ItemIO.OUTPUT)
+    public boolean complete = false;
+
     // Magic number declarations
     private static final double HIGH_CONTRAST_THRESHOLD = 120.0;
     private static final double LOW_CONTRAST_THRESHOLD = 0.0;
@@ -202,6 +205,7 @@ public class TWOMBLIRunner implements Command {
         this.maskImage = maskImage;
         this.hdmImage = IJ.openImage(hdmDirectory + File.separator + this.filePrefix + "_hdm.png");
         this.gapImage = IJ.openImage(gapAnalysisDirectory + File.separator + this.filePrefix + "_gap.png");
+        this.complete = true;
     }
 
     private void detectRidges(ImagePlus inputImage, String maskImage) {
