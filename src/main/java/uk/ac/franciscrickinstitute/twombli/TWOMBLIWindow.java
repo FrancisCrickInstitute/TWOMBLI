@@ -983,6 +983,7 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
                 this.fibreImage = (ImagePlus) output.getOutput("maskImage");
                 this.micRadioButton.setEnabled(true);
                 this.micImage = (ImagePlus) output.getOutput("gapImage");
+                this.fibreRadioButton.setState(true);
                 this.handleFibreButtonPressed();
             }
 
@@ -1019,7 +1020,7 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         Path successLog = Paths.get(this.outputDirectory, "success.log");
         boolean doHeader = true;
 
-        try (BufferedWriter successWriter = Files.newBufferedWriter(successLog, StandardOpenOption.APPEND)) {
+        try (BufferedWriter successWriter = Files.newBufferedWriter(successLog, StandardOpenOption.CREATE_NEW)) {
             for (CommandModule output : this.finishedFutures) {
                 // Gather our basic info
                 String filePrefix = (String) output.getInput("filePrefix");
