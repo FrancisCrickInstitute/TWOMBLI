@@ -97,9 +97,6 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         this.zoomImage();
         this.setTitle("TWOMBLI");
 
-        // Image display
-        final ImageCanvas canvas = this.getCanvas();
-
         // Layouts
         FlowLayout panelLayout = new FlowLayout();
         panelLayout.setAlignment(FlowLayout.LEFT);
@@ -466,6 +463,11 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         sidePanelConstraints.weighty = 1;
         sidePanel.add(Box.createVerticalBox(), sidePanelConstraints);
 
+        // Scroll bar
+        JScrollPane sidePanelScroll = new JScrollPane(sidePanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        sidePanelScroll.setMinimumSize(new Dimension(250, 400));
+        sidePanelScroll.setPreferredSize(new Dimension(250, 600));
+
         // Content panel
         GridBagLayout contentPanelLayout = new GridBagLayout();
         Panel contentPanel = new Panel();
@@ -477,17 +479,23 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         contentPanelConstraints.gridheight = 1;
         contentPanelConstraints.gridx = 0;
         contentPanelConstraints.gridy = 0;
-        contentPanelConstraints.weightx = 1;
+        contentPanelConstraints.weightx = 0.7;
         contentPanelConstraints.weighty = 1;
 
+        // Image display
+        final ImageCanvas canvas = this.getCanvas();
+        JScrollPane canvasScrollPane = new JScrollPane(canvas,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+
         // Insert canvas first
-        contentPanel.add(canvas, contentPanelConstraints);
+        contentPanel.add(canvasScrollPane, contentPanelConstraints);
 
         // Side panel for controls
         contentPanelConstraints.gridx++;
-        contentPanelConstraints.weightx = 0;
+        contentPanelConstraints.weightx = 0.3;
         contentPanelConstraints.weighty = 0;
-        contentPanel.add(sidePanel, contentPanelConstraints);
+        contentPanel.add(sidePanelScroll, contentPanelConstraints);
 
         // Core window layout properties
         GridBagLayout windowLayout = new GridBagLayout();
@@ -504,7 +512,6 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
 
         // Finish up and set our sizes
         this.pack();
-        this.setMinimumSize(this.getPreferredSize());
     }
 
     private void handleOriginalButtonPressed() {
@@ -724,20 +731,20 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
 
         Path savePath = Paths.get(potentialSavePath, "twombli_configuraiton.txt");
         try (BufferedWriter configWriter = Files.newBufferedWriter(savePath, StandardOpenOption.CREATE_NEW)) {
-            configWriter.write("MINIMUM_LINE_WIDTH:" + Integer.valueOf(this.minimumLineWidthField.getText()));
-            configWriter.write("MAXIMUM_LINE_WIDTH:" + Integer.valueOf(this.maximumLineWidthField.getText()));
-            configWriter.write("DARK_LINES:" + this.darklinesCheckbox.isSelected());
-            configWriter.write("MINIMUM_BRANCH_LENGTH:" + Integer.valueOf(this.minimumBranchLengthField.getText()));
-            configWriter.write("MINIMUM_CURVATURE_WINDOW:" + Integer.valueOf(this.minimumCurvatureWindowField.getText()));
-            configWriter.write("MAXIMUM_CURVATURE_WINDOW:" + Integer.valueOf(this.maximumCurvatureWindowField.getText()));
-            configWriter.write("CURVATURE_WINDOW_STEP_SIZE:" + Integer.valueOf(this.curvatureStepSizeField.getText()));
-            configWriter.write("MAXIMUM_DISPLAY_HDM:" + Integer.valueOf(this.maximumDisplayHDMField.getText()));
-            configWriter.write("CONTRAST_SATURATION:" + Float.valueOf(this.contrastSaturationField.getText()));
-            configWriter.write("PERFORM_GAP_ANALYSIS:" + this.gapAnalysisCheckbox.isSelected());
-            configWriter.write("MINIMUM_GAP_DIAMETER:" + Integer.valueOf(this.gapAnalysisDiameterField.getText()));
+            configWriter.write("MINIMUM_LINE_WIDTH:" + Integer.valueOf(this.minimumLineWidthField.getText()) + "\n");
+            configWriter.write("MAXIMUM_LINE_WIDTH:" + Integer.valueOf(this.maximumLineWidthField.getText()) + "\n");
+            configWriter.write("DARK_LINES:" + this.darklinesCheckbox.isSelected() + "\n");
+            configWriter.write("MINIMUM_BRANCH_LENGTH:" + Integer.valueOf(this.minimumBranchLengthField.getText()) + "\n");
+            configWriter.write("MINIMUM_CURVATURE_WINDOW:" + Integer.valueOf(this.minimumCurvatureWindowField.getText()) + "\n");
+            configWriter.write("MAXIMUM_CURVATURE_WINDOW:" + Integer.valueOf(this.maximumCurvatureWindowField.getText()) + "\n");
+            configWriter.write("CURVATURE_WINDOW_STEP_SIZE:" + Integer.valueOf(this.curvatureStepSizeField.getText()) + "\n");
+            configWriter.write("MAXIMUM_DISPLAY_HDM:" + Integer.valueOf(this.maximumDisplayHDMField.getText()) + "\n");
+            configWriter.write("CONTRAST_SATURATION:" + Float.valueOf(this.contrastSaturationField.getText()) + "\n");
+            configWriter.write("PERFORM_GAP_ANALYSIS:" + this.gapAnalysisCheckbox.isSelected() + "\n");
+            configWriter.write("MINIMUM_GAP_DIAMETER:" + Integer.valueOf(this.gapAnalysisDiameterField.getText()) + "\n");
 
             if (this.anamorfPropertiesFile != null) {
-                configWriter.write("ANAMORF_FILE:" + this.anamorfPropertiesFile);
+                configWriter.write("ANAMORF_FILE:" + this.anamorfPropertiesFile + "\n");
             }
         }
 
