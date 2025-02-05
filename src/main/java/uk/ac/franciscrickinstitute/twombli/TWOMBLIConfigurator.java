@@ -62,7 +62,8 @@ public class TWOMBLIConfigurator implements Command {
         SwingUtilities.invokeLater(
                 () -> {
                     TWOMBLIWindow window = new TWOMBLIWindow(this, displayImage, dataImage);
-                    window.pack();
+                    window.sidePanel.revalidate();
+                    window.sidePanel.repaint();
                 }
         );
     }

@@ -4,6 +4,8 @@ import javax.swing.*;
 import javax.swing.text.NumberFormatter;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.WindowEvent;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -26,7 +28,6 @@ import ij.ImagePlus;
 import ij.gui.ImageCanvas;
 import ij.gui.StackWindow;
 import ij.process.ImageProcessor;
-import io.scif.img.IO;
 import org.scijava.command.CommandModule;
 
 // Logservice integration
@@ -34,6 +35,8 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
 
     private static final double MAX_MAGNIFICATION = 32.0;
     private static final double MIN_MAGNIFICATION = 1/72.0;
+
+    protected final JPanel sidePanel;
 
     private ImagePlus originalImage;
     final TWOMBLIConfigurator plugin;
@@ -352,8 +355,8 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
 
         // Sidebar panel
         GridBagLayout sidePanelLayout = new GridBagLayout();
-        JPanel sidePanel = new JPanel();
-        sidePanel.setLayout(sidePanelLayout);
+        this.sidePanel = new JPanel();
+        this.sidePanel.setLayout(sidePanelLayout);
         GridBagConstraints sidePanelConstraints = new GridBagConstraints();
         sidePanelConstraints.anchor = GridBagConstraints.NORTH;
         sidePanelConstraints.fill = GridBagConstraints.HORIZONTAL;
@@ -364,31 +367,31 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         sidePanelConstraints.insets = new Insets(5, 5, 5, 5);
 
         // Help button
-        sidePanel.add(this.infoButton, sidePanelConstraints);
+        this.sidePanel.add(this.infoButton, sidePanelConstraints);
 
         // Change preview button
         sidePanelConstraints.gridy++;
-        sidePanel.add(this.changePreviewButton, sidePanelConstraints);
+        this.sidePanel.add(this.changePreviewButton, sidePanelConstraints);
 
         // Preview path
         sidePanelConstraints.gridy++;
-        sidePanel.add(this.selectedPreviewPathField, sidePanelConstraints);
+        this.sidePanel.add(this.selectedPreviewPathField, sidePanelConstraints);
 
         // Select Output Directory
         sidePanelConstraints.gridy++;
-        sidePanel.add(this.selectOutputButton, sidePanelConstraints);
+        this.sidePanel.add(this.selectOutputButton, sidePanelConstraints);
 
         // Output directory
         sidePanelConstraints.gridy++;
-        sidePanel.add(this.selectedOutputField, sidePanelConstraints);
+        this.sidePanel.add(this.selectedOutputField, sidePanelConstraints);
 
         // Configuration panel
         sidePanelConstraints.gridy++;
-        sidePanel.add(configPanel, sidePanelConstraints);
+        this.sidePanel.add(configPanel, sidePanelConstraints);
 
         // Insert run preview button
         sidePanelConstraints.gridy++;
-        sidePanel.add(this.runPreviewButton, sidePanelConstraints);
+        this.sidePanel.add(this.runPreviewButton, sidePanelConstraints);
 
         // Configuration panel
         GridBagLayout previewPanelLayout = new GridBagLayout();
@@ -440,7 +443,7 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
 
         // Preview panel
         sidePanelConstraints.gridy++;
-        sidePanel.add(previewPanel, sidePanelConstraints);
+        this.sidePanel.add(previewPanel, sidePanelConstraints);
 
 //        // Revert preview button
 //        sidePanelConstraints.gridy++;
@@ -448,25 +451,25 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
 
         // Select Batch
         sidePanelConstraints.gridy++;
-        sidePanel.add(this.selectBatchButton, sidePanelConstraints);
+        this.sidePanel.add(this.selectBatchButton, sidePanelConstraints);
 
         // Batch directory
         sidePanelConstraints.gridy++;
-        sidePanel.add(this.selectedBatchField, sidePanelConstraints);
+        this.sidePanel.add(this.selectedBatchField, sidePanelConstraints);
 
         // Insert run button
         sidePanelConstraints.gridy++;
-        sidePanel.add(this.runButton, sidePanelConstraints);
+        this.sidePanel.add(this.runButton, sidePanelConstraints);
 
         // Spacer so we valign
         sidePanelConstraints.gridy++;
         sidePanelConstraints.weighty = 1;
-        sidePanel.add(Box.createVerticalBox(), sidePanelConstraints);
+        this.sidePanel.add(Box.createVerticalBox(), sidePanelConstraints);
 
         // Scroll bar
         JScrollPane sidePanelScroll = new JScrollPane(sidePanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        sidePanelScroll.setMinimumSize(new Dimension(250, 400));
-        sidePanelScroll.setPreferredSize(new Dimension(250, 600));
+        sidePanelScroll.setMinimumSize(new Dimension(350, 400));
+        sidePanelScroll.getViewport().setScrollMode(JViewport.BACKINGSTORE_SCROLL_MODE);
 
         // Content panel
         GridBagLayout contentPanelLayout = new GridBagLayout();
@@ -479,17 +482,14 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         contentPanelConstraints.gridheight = 1;
         contentPanelConstraints.gridx = 0;
         contentPanelConstraints.gridy = 0;
-        contentPanelConstraints.weightx = 0.7;
+        contentPanelConstraints.weightx = 1;
         contentPanelConstraints.weighty = 1;
 
         // Image display
         final ImageCanvas canvas = this.getCanvas();
-        JScrollPane canvasScrollPane = new JScrollPane(canvas,
-                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
-                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
         // Insert canvas first
-        contentPanel.add(canvasScrollPane, contentPanelConstraints);
+        contentPanel.add(canvas, contentPanelConstraints);
 
         // Side panel for controls
         contentPanelConstraints.gridx++;
@@ -511,7 +511,15 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         this.toggleOutputAvailableInteractions(false);
 
         // Finish up and set our sizes
+        RepaintManager.currentManager(this).setDoubleBufferingEnabled(true);
         this.pack();
+        this.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                super.componentResized(e);
+                canvas.fitToWindow();
+            }
+        });
     }
 
     private void handleOriginalButtonPressed() {
