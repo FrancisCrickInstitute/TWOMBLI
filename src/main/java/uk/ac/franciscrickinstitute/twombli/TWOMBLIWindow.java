@@ -466,9 +466,14 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         sidePanelConstraints.weighty = 1;
         this.sidePanel.add(Box.createVerticalBox(), sidePanelConstraints);
 
+        // X11 RD Dimensions
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int width = (int) (screenSize.width * 0.4);
+        int height = (int) (screenSize.height * 0.6);
+
         // Scroll bar
-        JScrollPane sidePanelScroll = new JScrollPane(sidePanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        sidePanelScroll.setMinimumSize(new Dimension(350, 400));
+        JScrollPane sidePanelScroll = new JScrollPane(this.sidePanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        sidePanelScroll.setMinimumSize(new Dimension(width / 4, height));
         sidePanelScroll.getViewport().setScrollMode(JViewport.BACKINGSTORE_SCROLL_MODE);
 
         // Content panel
@@ -482,7 +487,7 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         contentPanelConstraints.gridheight = 1;
         contentPanelConstraints.gridx = 0;
         contentPanelConstraints.gridy = 0;
-        contentPanelConstraints.weightx = 1;
+        contentPanelConstraints.weightx = 0.5;
         contentPanelConstraints.weighty = 1;
 
         // Image display
@@ -494,7 +499,7 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         // Side panel for controls
         contentPanelConstraints.gridx++;
         contentPanelConstraints.weightx = 0.3;
-        contentPanelConstraints.weighty = 0;
+        contentPanelConstraints.weighty = 1;
         contentPanel.add(sidePanelScroll, contentPanelConstraints);
 
         // Core window layout properties
@@ -516,8 +521,12 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         this.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                super.componentResized(e);
-                canvas.fitToWindow();
+                SwingUtilities.invokeLater(() -> {
+                    super.componentResized(e);
+                    canvas.fitToWindow();
+                    sidePanel.revalidate();
+                    sidePanel.repaint();
+                });
             }
         });
     }
