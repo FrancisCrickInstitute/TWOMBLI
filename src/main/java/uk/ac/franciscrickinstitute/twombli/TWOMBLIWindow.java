@@ -29,12 +29,15 @@ import ij.gui.ImageCanvas;
 import ij.gui.StackWindow;
 import ij.process.ImageProcessor;
 import org.scijava.command.CommandModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // Logservice integration
 public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener {
 
     private static final double MAX_MAGNIFICATION = 32.0;
     private static final double MIN_MAGNIFICATION = 1/72.0;
+    private static final Logger log = LoggerFactory.getLogger(TWOMBLIWindow.class);
 
     protected final JPanel sidePanel;
 
@@ -56,18 +59,18 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
     private final JButton loadConfigButton;
     private final JButton infoButton;
     private final JButton changePreviewButton;
-    private final JLabel selectedPreviewPathField;
+    private final JTextArea selectedPreviewPathField;
     private final JButton resetViewButton;
     private final JButton selectOutputButton;
-    private final JLabel selectedOutputField;
+    private final JTextArea selectedOutputField;
     private final JButton runPreviewButton;
 //    private final JButton revertPreview;
     private final JButton selectBatchButton;
-    private JLabel selectedBatchField;
+    private JTextArea selectedBatchField;
     private final JButton runButton;
 
     // Preview image controls
-    private JLabel currentlySelectedLabel;
+    private JTextArea currentlySelectedLabel;
     private Checkbox originalRadioButton;
     private Checkbox hdmRadioButton;
     private ImagePlus hdmImage;
@@ -117,7 +120,7 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         this.changePreviewButton.addActionListener(changePreviewListener);
 
         // Current preview path
-        this.selectedPreviewPathField = new JLabel(this.originalImage.getOriginalFileInfo().getFilePath());
+        this.selectedPreviewPathField = this.createWrappedLabel(this.originalImage.getOriginalFileInfo().getFilePath());
 
         // Reset View button
         this.resetViewButton = new JButton("Reset View");
@@ -130,7 +133,7 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         this.selectOutputButton.setToolTipText("Choose a directory to output all the data. This includes preview data!");
         ActionListener selectOutputListener = e -> this.getOutputDirectory();
         this.selectOutputButton.addActionListener(selectOutputListener);
-        this.selectedOutputField = new JLabel("No output directory selected.");
+        this.selectedOutputField = this.createWrappedLabel("No output directory selected.");
 
         // Minimum line width panel
         JLabel minimLineWidthInfo = new JLabel("Minimum Line Width (px):");
@@ -276,7 +279,7 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         this.selectBatchButton.setToolTipText("Choose a directory containing multiple images to run.");
         ActionListener selectBatchListener = e -> this.getBatchDirectory();
         this.selectBatchButton.addActionListener(selectBatchListener);
-        this.selectedBatchField = new JLabel("No batch directory selected.");
+        this.selectedBatchField = this.createWrappedLabel("No batch directory selected.");
 
         // Run button
         this.runButton = new JButton("Run Batch");
@@ -408,7 +411,7 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         previewPanelConstraints.insets = new Insets(5, 5, 5, 5);
 
         // Selected info
-        this.currentlySelectedLabel = new JLabel("Currently Selected: None");
+        this.currentlySelectedLabel = this.createWrappedLabel("Currently Selected: None");
 
         // Button group
         CheckboxGroup radioGroup = new CheckboxGroup();
@@ -472,7 +475,7 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         int height = (int) (screenSize.height * 0.6);
 
         // Scroll bar
-        JScrollPane sidePanelScroll = new JScrollPane(this.sidePanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        JScrollPane sidePanelScroll = new JScrollPane(this.sidePanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         sidePanelScroll.setMinimumSize(new Dimension(width / 4, height));
         sidePanelScroll.getViewport().setScrollMode(JViewport.BACKINGSTORE_SCROLL_MODE);
 
@@ -506,7 +509,7 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
         GridBagLayout windowLayout = new GridBagLayout();
         GridBagConstraints windowConstraints = new GridBagConstraints();
         windowConstraints.anchor = GridBagConstraints.NORTHWEST;
-        windowConstraints.fill = GridBagConstraints.NORTH;
+        windowConstraints.fill = GridBagConstraints.BOTH;
         windowConstraints.weightx = 1;
         windowConstraints.weighty = 1;
         this.setLayout(windowLayout);
@@ -1068,5 +1071,17 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
     @Override
     public void handleProgressBarCancelled() {
         this.processQueue.clear();
+    }
+
+    private JTextArea createWrappedLabel(String text) {
+        JTextArea label = new JTextArea(text);
+        label.setEditable(false);
+        label.setWrapStyleWord(true);
+        label.setLineWrap(true);
+        label.setOpaque(false);
+        label.setFocusable(false);
+        label.setFont(new JLabel().getFont());
+        label.setBorder(null);
+        return label;
     }
 }
