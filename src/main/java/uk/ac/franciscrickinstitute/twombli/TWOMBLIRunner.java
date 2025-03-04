@@ -348,8 +348,8 @@ public class TWOMBLIRunner implements Command {
             Batch_Analyser.getProps().setProperty(DefaultParams.FOURIER_FRAC_LABEL, "false");
             Batch_Analyser.getProps().setProperty(DefaultParams.LAC_LABEL, "false");
             Batch_Analyser.getProps().setProperty(DefaultParams.MEAN_BRANCH_LABEL, "false");
-            Batch_Analyser.getProps().setProperty(DefaultParams.NUM_BRANCH_LABEL, "false");
-            Batch_Analyser.getProps().setProperty(DefaultParams.NUM_END_LABEL, "false");
+            Batch_Analyser.getProps().setProperty(DefaultParams.NUM_BRANCH_LABEL, "true");
+            Batch_Analyser.getProps().setProperty(DefaultParams.NUM_END_LABEL, "true");
             Batch_Analyser.getProps().setProperty(DefaultParams.PROJ_AREA_LABEL, "false");
             Batch_Analyser.getProps().setProperty(DefaultParams.TOT_LENGTH_LABEL, "false");
 
