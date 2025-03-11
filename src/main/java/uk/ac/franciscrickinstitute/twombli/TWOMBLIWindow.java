@@ -591,7 +591,7 @@ public class TWOMBLIWindow extends StackWindow implements ProgressCancelListener
                     continue;
                 }
 
-                baseProcessor.putPixel(x, y, 16711680);
+                baseProcessor.putPixel(x, y, 16711935);
             }
         }
 
