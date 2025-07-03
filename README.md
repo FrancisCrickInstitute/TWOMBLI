@@ -15,7 +15,7 @@ TWOMBLI allows the quantificaiton of the following metrics, illustrated below:
 
 ![TWOMBLI Metrics](https://www.life-science-alliance.org/content/lsa/4/3/e202000880/F2.large.jpg)
 
-## Version 1
+### Version 1
 
 TWOMBLI was originally published as an ImageJ/FIJI macro:
 
@@ -23,38 +23,36 @@ TWOMBLI was originally published as an ImageJ/FIJI macro:
 
 However, the ongoing maintance and development of the macro code was proving challenging, particularly as the number of users grew, along with requests for additional features and improved functionality.
 
-## Version 2
+### Version 2
 
 TWOMBLI was therefore reimplemented as a FIJI plugin, using software engineering best practices. Aside from easing future maintenance, reimplementing in Java allows the creation of a much more user-friendly interface and simplifies the addition of new functionality.
 
+# Installation
+
+In Fiji, you just need to add the TWOMBLI site to your list of update sites:
+1. Select Help › Update… from the menu to [start the updater](https://imagej.net/plugins/updater).
+2. Click on Manage update sites. This brings up a dialog where you can activate additional update sites.
+3. Activate the TWOMBLI update site and close the dialog.
+4. Click Apply changes and restart FIJI.
+
 # Getting Started with TWOMBLI
 
-
+Read the documentation here (_insert link to readthedocs_) to get started.
 
 # Developing TWOMBLI
 
-## Development Setup:
-Clone this repository locally, open the project in your IDE of choice, build using maven.
+### Development Setup:
+Clone this repository locally, open the project in your IDE of choice, build using maven. Artifact deployments may be automated in future using github workflows + PRs.
 
-Artifact deployments may be automated in future using github workflows + PRs.
+### Contribution Guidelines:
+This repository uses GitHub's built-in issues, pull requests, and workflow tools. Please conform to the existing repository styles and standards.
+* To contribute to the documentation, please submit an issue with your desired changes.
+* To report a bug or feature request please submit an issue here: https://github.com/FrancisCrickInstitute/TWOMBLI/issues
+* To contribute please submit a pull request here: https://github.com/FrancisCrickInstitute/TWOMBLI/pulls
 
-## Production Setup:
-Open ImageJ and download the TWOMBLI plugin.
+# Get Help:
 
-The TWOMBLI Command can then be triggered by navigating to plugins > TWOMBLI.
-
-## Usage:
-Either watch the provided video guide () or refer to this repositories 'wiki'.
-
-## Contribution Guidelines:
-This repository uses GitHub's built-in issues, pull requests, and workflow tools.
-Please conform to the existing repository styles and standards.
-
-To contribute to the documentation, please submit an issue with your desired changes.
-To report a bug or feature request please submit an issue here: https://github.com/FrancisCrickInstitute/TWOMBLI/issues
-To contribute please submit a pull request here: https://github.com/FrancisCrickInstitute/TWOMBLI/pulls
-
-## Contact Details:
-* Image SC forums (https://forum.image.sc/)
-* jon.smith@crick.ac.uk
-* david.barry@crick.ac.uk
+The best place to ask for help is the [Image.sc forum](https://forum.image.sc/):
+* [Create an account](https://forum.image.sc/signup) if you don't have one already
+* [Search to see if someone has already asked a similar question](https://forum.image.sc/tag/twombli) - there may already be a relevant answer
+* If not, create a new topic using the #twombli hashtag
