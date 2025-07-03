@@ -4,36 +4,36 @@
 
 ![TWOMBLI Overview](https://www.life-science-alliance.org/content/lsa/4/3/e202000880/F3.large.jpg)
 
-TWOMBLI stands for The Workflow Of Matrix BioLogy Informatics. Diverse extracellular matrix (ECM) patterns are observed in both normal and pathological tissue.The aim of TWOMBLI is to quantify matrix patterns. The name TWOMBLI is also a nod to the American artist Cy Twombly whose works are full of diverse marks and patterning. 
+**TWOMBLI**, which stands for **The Workflow Of Matrix BioLogy Informatics**, is a tool designed to quantify diverse extracellular matrix (ECM) patterns observed in both normal and pathological tissues. The name TWOMBLI also pays homage to the American artist [Cy Twombly](https://en.wikipedia.org/wiki/Cy_Twombly), whose works are renowned for their varied marks and patterning.
 
-TWOMBLI allows the quantificaiton of the following metrics, illustrated below:
+TWOMBLI enables the quantification of the following key metrics, illustrated below:
 * Number of fibre endpoints
 * Number of fibre branchpoints
-* % of image occupied by high density matrix (HDM)
+* Percentage of image occupied by high-density matrix (HDM)
 * Fibre curvature
-* Fractal dimension of fibre network
+* Fractal dimension of the fibre network
 
 ![TWOMBLI Metrics](https://www.life-science-alliance.org/content/lsa/4/3/e202000880/F2.large.jpg)
 
-### Version 1
+### Version 1: The Original Macro
 
-TWOMBLI was originally published as an ImageJ/FIJI macro:
+TWOMBLI was initially released as an ImageJ/FIJI macro:
 
 >Wershof E, Park D, Barry DJ, Jenkins RP, Rullan A, Wilkins A, Schlegelmilch K, Roxanis I, Anderson KI, Bates PA, Sahai E (2021) A FIJI macro for quantifying fibrillar patterns. _Life Science Alliance_, 4 (3) e202000880; DOI: 10.26508/lsa.202000880
 
-However, the ongoing maintance and development of the macro code was proving challenging, particularly as the number of users grew, along with requests for additional features and improved functionality.
+However, maintaining and developing this macro became challenging as the user base grew and requests for new features and improved functionality increased.
 
-### Version 2
+### Version 2: The Java Plugin for FIJI
 
-TWOMBLI was therefore reimplemented as a FIJI plugin, using software engineering best practices. Aside from easing future maintenance, reimplementing in Java allows the creation of a much more user-friendly interface and simplifies the addition of new functionality.
+To address these challenges, TWOMBLI was **reimplemented as a FIJI plugin**, adhering to best practices in software engineering. This transition to Java not only simplifies future maintenance but also allows for a more user-friendly interface and easier integration of new functionalities.
 
 # Installation
 
 In Fiji, you just need to add the TWOMBLI site to your list of update sites:
-1. Select Help › Update… from the menu to [start the updater](https://imagej.net/plugins/updater).
-2. Click on Manage update sites. This brings up a dialog where you can activate additional update sites.
-3. Activate the TWOMBLI update site and close the dialog.
-4. Click Apply changes and restart FIJI.
+1. From the FIJI menu, navigate to `Help` › `Update…` to launch [the updater](https://imagej.net/plugins/updater).
+2. Click on `Manage update sites`. This will open a dialog where you can activate additional update sites.
+3. Activate the **TWOMBLI** update site and close the dialog.
+4. Click `Apply changes` and restart FIJI.
 
 # Getting Started with TWOMBLI
 
