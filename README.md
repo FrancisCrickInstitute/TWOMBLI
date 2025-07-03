@@ -2,18 +2,16 @@
 
 # Overview
 
-![TWOMBLI Overview](https://www.life-science-alliance.org/content/lsa/4/3/e202000880/F3.large.jpg)
+![TWOMBLI Metrics](https://www.life-science-alliance.org/content/lsa/4/3/e202000880/F2.large.jpg)
 
 **TWOMBLI**, which stands for **The Workflow Of Matrix BioLogy Informatics**, is a tool designed to quantify diverse extracellular matrix (ECM) patterns observed in both normal and pathological tissues. The name TWOMBLI also pays homage to the American artist [Cy Twombly](https://en.wikipedia.org/wiki/Cy_Twombly), whose works are renowned for their varied marks and patterning.
 
-TWOMBLI enables the quantification of the following key metrics, illustrated below:
+TWOMBLI enables the quantification of the following key metrics, illustrated above:
 * Number of fibre endpoints
 * Number of fibre branchpoints
 * Percentage of image occupied by high-density matrix (HDM)
 * Fibre curvature
 * Fractal dimension of the fibre network
-
-![TWOMBLI Metrics](https://www.life-science-alliance.org/content/lsa/4/3/e202000880/F2.large.jpg)
 
 ### Version 1: The Original Macro
 
@@ -26,6 +24,10 @@ However, maintaining and developing this macro became challenging as the user ba
 ### Version 2: The Java Plugin for FIJI
 
 To address these challenges, TWOMBLI was **reimplemented as a FIJI plugin**, adhering to best practices in software engineering. This transition to Java not only simplifies future maintenance but also allows for a more user-friendly interface and easier integration of new functionalities.
+
+### Key Differences: Version 1 vs. Version 2
+
+For users, the main distinction between TWOMBLI Version 1 (macro) and Version 2 (Java plugin) is the significantly improved graphical user interface (GUI). While the look and feel are much more user-friendly in Version 2, rest assured that the underlying analysis remains identical. You'll set the exact same parameters and get virtually the same results and data as you did with Version 1.
 
 # Installation
 
