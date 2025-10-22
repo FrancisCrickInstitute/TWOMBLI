@@ -12,6 +12,10 @@ import ij.plugin.filter.Analyzer;
 import ij.plugin.frame.RoiManager;
 import net.calm.anamorf.Batch_Analyser;
 import net.calm.anamorf.params.DefaultParams;
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.math3.stat.descriptive.moment.Mean;
+import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
+import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.scijava.ItemIO;
 import org.scijava.command.Command;
 import org.scijava.plugin.Parameter;
@@ -74,22 +78,22 @@ public class TWOMBLIRunner implements Command {
     @Parameter
     public int minimumGapDiameter = 0;
 
-    @Parameter(type=ItemIO.OUTPUT)
+    @Parameter(type = ItemIO.OUTPUT)
     public double alignment;
 
-    @Parameter(type=ItemIO.OUTPUT)
+    @Parameter(type = ItemIO.OUTPUT)
     public int dimension;
 
-    @Parameter(type=ItemIO.OUTPUT)
+    @Parameter(type = ItemIO.OUTPUT)
     public ImagePlus maskImage;
 
-    @Parameter(type=ItemIO.OUTPUT)
+    @Parameter(type = ItemIO.OUTPUT)
     public ImagePlus hdmImage;
 
-    @Parameter(type=ItemIO.OUTPUT)
+    @Parameter(type = ItemIO.OUTPUT)
     public ImagePlus gapImage;
 
-    @Parameter(type=ItemIO.OUTPUT)
+    @Parameter(type = ItemIO.OUTPUT)
     public boolean complete = false;
 
     // Magic number declarations
@@ -325,9 +329,7 @@ public class TWOMBLIRunner implements Command {
                 File propsFile = new File(this.anamorfPropertiesFile);
                 props.loadFromXML(Files.newInputStream(propsFile.toPath()));
             }
-        }
-
-        catch (IOException ex) {
+        } catch (IOException ex) {
             ex.printStackTrace();
             return;
         }
@@ -448,27 +450,18 @@ public class TWOMBLIRunner implements Command {
         duplicateImage.close();
         WindowManager.setTempCurrentImage(null);
 
-        // Perform our measurements
-        int measurements = Measurements.AREA;
-        ResultsTable rt = new ResultsTable();
-        Analyzer analyzer = new Analyzer(maskImage, measurements, rt);
-        analyzer.measure();
-        double[] areas = rt.getColumn("Area");
+        Analyzer.setMeasurements(Measurements.AREA);
+        ResultsTable rt = roiManager.multiMeasure(maskImage);
+        String[] colheadings = rt.getHeadings();
+        double[] areas = new double[]{};
+        for (String col : colheadings) {
+            double[] area = rt.getColumn(col);
+            areas = ArrayUtils.addAll(areas, area);
+        }
         Arrays.sort(areas);
 
-        // Calc mean
-        double sum = 0;
-        for (double area : areas) {
-            sum += area;
-        }
-        double mean = sum / areas.length;
-
-        // Standard Deviation
-        double sumOfSquares = 0;
-        for (double area : areas) {
-            sumOfSquares += Math.pow(area - mean, 2);
-        }
-        double standardDeviation = Math.sqrt(sumOfSquares / areas.length);
+        double mean = new Mean().evaluate(areas);
+        double standardDeviation = new StandardDeviation().evaluate(areas);
         double fivePercentile = this.percentile(areas, 5);
         double fiftyPercentile = this.percentile(areas, 50);
         double ninetyFivePercentile = this.percentile(areas, 95);
@@ -477,29 +470,28 @@ public class TWOMBLIRunner implements Command {
         String individualGapAnalysisFilePath = gapAnalysisDirectory + File.separator + this.filePrefix + "_gaps.csv";
         File individualGapAnalysisFile = new File(individualGapAnalysisFilePath);
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(individualGapAnalysisFile))) {
-            bw.write(this.filePrefix + " " + mean + " " + standardDeviation + " " + fivePercentile + " " + fiftyPercentile + " " + ninetyFivePercentile);
-        }
-        catch (IOException e) {
+            bw.write("File,Mean,Standard Deviation,5th Percentile,Median,95th Percentile\n");
+            bw.write(this.filePrefix + "," + mean + "," + standardDeviation + "," + fivePercentile + "," + fiftyPercentile + "," + ninetyFivePercentile + "\n");
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
         // Write the array to file
-        String individualGapAnalysisArrayFilePath = gapAnalysisDirectory + File.separator +  this.filePrefix + "_area_arrays.csv";
+        String individualGapAnalysisArrayFilePath = gapAnalysisDirectory + File.separator + this.filePrefix + "_area_arrays.csv";
         File individualGapAnalysisArrayFile = new File(individualGapAnalysisArrayFilePath);
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(individualGapAnalysisArrayFile))) {
+            bw.write("Area\n");
             for (double area : areas) {
                 bw.write(area + "\n");
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         WindowManager.setTempCurrentImage(null);
     }
 
     private double percentile(double[] values, double percentile) {
-        int index = (int) Math.ceil(percentile / 100.0 * values.length);
-        return values[index - 1];
+        return new Percentile().evaluate(values, percentile);
     }
 
     private void closeNonImages() {
