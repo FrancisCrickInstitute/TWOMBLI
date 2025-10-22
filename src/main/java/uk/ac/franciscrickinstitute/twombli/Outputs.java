@@ -42,11 +42,17 @@ public class Outputs {
 
         // Write to our gap analysis summary
         if (gapAnalysis) {
+            boolean skippedHeader = false;
             try (BufferedReader reader = Files.newBufferedReader(gapAnalysisPath);
                  BufferedWriter writer = Files.newBufferedWriter(gap_csv_path, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
 
                 String line;
                 while ((line = reader.readLine()) != null) {
+                    if (!skippedHeader) {
+                        skippedHeader = true;
+                        continue;
+                    }
+
                     writer.write(line.replace(" ", ","));
                     writer.newLine(); // Ensure proper newline after each row
                 }
