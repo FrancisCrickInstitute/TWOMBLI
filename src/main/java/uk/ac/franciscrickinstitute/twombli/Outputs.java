@@ -11,6 +11,8 @@ import java.util.List;
 
 public class Outputs {
 
+    public static final String GAPS_HEADER = "File,Mean,Standard Deviation,5th Percentile,Median,95th Percentile";
+
     public static void generateSummaries(Path twombli_csv_path, double alignment, int dimension, Path anamorfSummaryPath, Path hdmSummaryPath, Path gapAnalysisPath, boolean doHeader, boolean gapAnalysis, Path gap_csv_path) {
         // Write to our twombli summary
         try {
@@ -43,10 +45,16 @@ public class Outputs {
         // Write to our gap analysis summary
         if (gapAnalysis) {
             try (BufferedReader reader = Files.newBufferedReader(gapAnalysisPath);
-                 BufferedWriter writer = Files.newBufferedWriter(gap_csv_path, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+                BufferedWriter writer = Files.newBufferedWriter(gap_csv_path, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+                writer.write(Outputs.GAPS_HEADER);
+                writer.newLine();
 
                 String line;
                 while ((line = reader.readLine()) != null) {
+                    if (line.equalsIgnoreCase(Outputs.GAPS_HEADER)) {
+                        continue;
+                    }
+
                     writer.write(line.replace(" ", ","));
                     writer.newLine(); // Ensure proper newline after each row
                 }

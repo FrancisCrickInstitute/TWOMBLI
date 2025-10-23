@@ -470,7 +470,7 @@ public class TWOMBLIRunner implements Command {
         String individualGapAnalysisFilePath = gapAnalysisDirectory + File.separator + this.filePrefix + "_gaps.csv";
         File individualGapAnalysisFile = new File(individualGapAnalysisFilePath);
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(individualGapAnalysisFile))) {
-            bw.write("File,Mean,Standard Deviation,5th Percentile,Median,95th Percentile\n");
+            bw.write(Outputs.GAPS_HEADER + "\n");
             bw.write(this.filePrefix + "," + mean + "," + standardDeviation + "," + fivePercentile + "," + fiftyPercentile + "," + ninetyFivePercentile + "\n");
         } catch (IOException e) {
             e.printStackTrace();
